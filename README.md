@@ -1,6 +1,7 @@
 <img src="https://cloud.githubusercontent.com/assets/5986600/12841730/d500562a-cc28-11e5-84d9-90ae6abd5486.png" width="600">
 
 [![Join the chat at https://gitter.im/mattkrick/meatier](https://badges.gitter.im/mattkrick/meatier.svg)](https://gitter.im/mattkrick/meatier?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Circle CI](https://img.shields.io/circleci/project/mattkrick/meatier/master.svg)](https://circleci.com/gh/mattkrick/meatier)
 [![XO code style](https://img.shields.io/badge/code_style-XO-5ed9c7.svg)](https://github.com/sindresorhus/xo)
 
 Meteor is awesome! But after 3 years, it's starting to show its age. This project is designed to showcase 
@@ -32,12 +33,12 @@ Some of my chief complaints with Meteor
 | Optimistic UI     | latency compensation                                            | [redux-optimistic-ui](https://github.com/mattkrick/redux-optimistic-ui)  | written by yours truly                                         |
 | Testing           | Velocity (or nothing at all)                                    | [AVA](https://github.com/sindresorhus/ava)                          | awesome es2016 concurrent testing                                   |
 | Linting           | Your choice                                                     | [xo](https://www.npmjs.com/package/xo)                              | no dotfiles, fixes errors                                           |
-| Routing           | [FlowRouter](https://github.com/kadirahq/flow-router)           | [redux-simple-router](https://github.com/reactjs/react-router-redux) | stick the route in the state, react-router SSR, async routes        |
+| Routing           | [FlowRouter](https://github.com/kadirahq/flow-router)           | [react-router-redux](https://github.com/reactjs/react-router-redux) | stick the route in the state, react-router SSR, async routes        |
 | Server            | Node 0.10.41                                                    | Node 5                                                              | Faster, maintained, not a dinosaur...                               |                             |
  
 ##Installation
 - `brew install rethinkdb`
-- `npm i -g webpack@2.0.2-beta` (optional, but recommended)
+- make sure you are using webpack@2.x (not a v1 installed globally)
 - `rethinkdb` (in second terminal window)
 - `git clone` this repo
 - `cd meatier`
@@ -129,6 +130,10 @@ I don't know of any place that hosts RethinkDB for free...so here's a gif.
  - No donations necessary (but if you know of any jobs that'll let me move back to San Diego, let me know :wink:)
 
 ##Changelog
+- 0.10
+ - Use the redux devtools chrome extension 
+ - Update just about all the deps
+ - Make deployments more configurable (deployment strategy coming soon)
 - 0.9
  - Upgraded to `redux-simple-router@2.0.3`
  - Now you can do cool things like time travel through routes!

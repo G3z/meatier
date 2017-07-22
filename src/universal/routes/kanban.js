@@ -7,14 +7,14 @@ export default function (store) {
     path: 'kanban',
     component: LandingContainer,
     getIndexRoute: async (location, cb) => {
-      let promiseMap = setKanbanImports();
-      let importMap = await resolvePromiseMap(promiseMap);
-      let {component, optimistic, ...asyncReducers} = getKanbanImports(importMap);
-      let newReducer = makeReducer(asyncReducers, optimistic);
+      const promiseMap = setKanbanImports();
+      const importMap = await resolvePromiseMap(promiseMap);
+      const {component, optimistic, ...asyncReducers} = getKanbanImports(importMap);
+      const newReducer = makeReducer(asyncReducers, optimistic);
       store.replaceReducer(newReducer);
       cb(null, {component});
     }
-  }
+  };
 }
 
 function setKanbanImports() {
@@ -34,5 +34,5 @@ function getKanbanImports(importMap) {
     lanes: importMap.get('lanes').reducer,
     notes: importMap.get('notes').reducer,
     socket: importMap.get('socket').socketClusterReducer
-  }
+  };
 }

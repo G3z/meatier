@@ -1,17 +1,22 @@
-import React, { Component, PropTypes } from 'react';
-import TextField from 'material-ui/lib/text-field';
-import RaisedButton from 'material-ui/lib/raised-button';
+import React, {PropTypes, Component} from 'react';
+import TextField from 'material-ui/TextField';
+import RaisedButton from 'material-ui/RaisedButton';
 import styles from './ResetPassword.css';
-import {Link} from 'react-router';
-import {reduxForm} from 'redux-form';
-import Joi from 'joi';
-import {authSchemaPassword} from '../..//schemas/auth';
-import {resetPassword} from '../..//ducks/auth'
-import {parsedJoiErrors} from 'universal/utils/schema';
-import {getFormState} from 'universal/redux/helpers';
+import meatierForm from 'universal/decorators/meatierForm/meatierForm'
+import {authSchemaPassword} from '../../schemas/auth';
+import {resetPassword} from '../../ducks/auth';
 
-@reduxForm({form: 'resetPasswordForm', fields: ['password'], validate, getFormState})
+@meatierForm({form: 'resetPasswordForm', fields: ['password'], schema: authSchemaPassword})
 export default class ResetPassword extends Component {
+  static propTypes = {
+    fields: PropTypes.any,
+    error: PropTypes.any,
+    handleSubmit: PropTypes.func,
+    submitting: PropTypes.bool,
+    params: PropTypes.shape({
+      resetToken: PropTypes.string
+    })
+  }
   render() {
     const {fields: {password}, error, handleSubmit, submitting} = this.props;
     return (
@@ -20,20 +25,21 @@ export default class ResetPassword extends Component {
         <span className={styles.instructions}>Please type your new password here</span>
         {error && <span>{error}</span>}
         <form className={styles.resetPasswordForm} onSubmit={handleSubmit(this.onSubmit)}>
-          <input style={{display:'none'}} type="text" name="chromeisabitch"/>
+          <input style={{display: 'none'}} type="text" name="chromeisabitch"/>
 
-          <TextField {...password}
+          <TextField
+            {...password}
             type="password"
             floatingLabelText="Password"
             hintText="hunter2"
-            errorText={ password.touched && password.error || ''}
+            errorText={password.touched && password.error || ''}
           />
-          <input style={{display:'none'}} type="text" name="javascriptDisabled"/>
+          <input style={{display: 'none'}} type="text" name="javascriptDisabled"/>
           <div className={styles.resetPasswordButton}>
             <RaisedButton
-              label='Set new password'
-              secondary={true}
-              type='submit'
+              label="Set new password"
+              secondary
+              type="submit"
               disabled={submitting}
               onClick={handleSubmit(this.onSubmit)}
             />
@@ -42,14 +48,9 @@ export default class ResetPassword extends Component {
       </div>
     );
   }
-  onSubmit = (data,dispatch) => {
+  onSubmit = (data, dispatch) => {
     const {resetToken} = this.props.params;
     const outData = Object.assign({}, data, {resetToken});
     return resetPassword(outData, dispatch);
   };
-}
-
-function validate(values) {
-  const results = Joi.validate(values, authSchemaPassword, {abortEarly: false});
-  return parsedJoiErrors(results.error);
 }

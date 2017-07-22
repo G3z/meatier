@@ -1,51 +1,41 @@
-import React, { Component, PropTypes } from 'react';
-import {authSchemaInsert} from '../..//schemas/auth';
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
-import Auth from '../..//components/Auth/Auth';
-import {reduxForm} from 'redux-form';
-import Joi from 'joi';
-import {postJSON, parseJSON} from 'universal/utils/fetching';
-import {parsedJoiErrors} from 'universal/utils/schema';
-import {getFormState} from 'universal/redux/helpers';
+import React, {Component, PropTypes} from 'react';
+import {authSchemaInsert} from '../../schemas/auth';
+import {connect} from 'react-redux';
+import Auth from '../../components/Auth/Auth';
 import {ensureState} from 'redux-optimistic-ui';
+import meatierForm from 'universal/decorators/meatierForm/meatierForm'
 
 // use the same form to retain form values (there's really no difference between login and signup, it's just for show)
 @connect(mapStateToProps)
 // must come after connect to get the path field
-@reduxForm({form: 'authForm', fields: ['email', 'password'], validate, getFormState})
+@meatierForm({form: 'authForm', fields: ['email', 'password'], schema: authSchemaInsert})
 export default class AuthContainer extends Component {
-  static PropTypes = {
+  static propTypes = {
     location: PropTypes.object,
-    isAuthenticating: PropTypes.bool.isRequired,
-    isAuthenticated: PropTypes.bool.isRequired,
+    isAuthenticating: PropTypes.bool,
+    isAuthenticated: PropTypes.bool,
     authError: PropTypes.shape({
-      _error: PropTypes.string.isRequired,
+      _error: PropTypes.string,
       email: PropTypes.string,
       password: PropTypes.string
     }),
-    path: PropTypes.string.isRequired
+    pathname: PropTypes.string
   };
 
   render() {
-    const isLogin = this.props.pathname && this.props.pathname.indexOf('/login') !== -1;
-    return <Auth isLogin={isLogin} {...this.props}/>
+    const {pathname} = this.props;
+    const isLogin = pathname && pathname.indexOf('/login') !== -1;
+    return <Auth isLogin={isLogin} {...this.props}/>;
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state, props) {
   state = ensureState(state);
   const auth = state.get('auth');
   return {
     isAuthenticated: auth.get('isAuthenticated'),
     isAuthenticating: auth.get('isAuthenticating'),
     authError: auth.get('error').toJS(),
-    pathname: state.get('routing').location.pathname
-  }
+    pathname: props.location.pathname
+  };
 }
-
-function validate(values) {
-  const results = Joi.validate(values, authSchemaInsert, {abortEarly: false});
-  return parsedJoiErrors(results.error);
-}
-

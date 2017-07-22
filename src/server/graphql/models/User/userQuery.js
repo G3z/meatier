@@ -1,14 +1,12 @@
 import r from '../../../database/rethinkdriver';
-import {GraphQLString, GraphQLNonNull, GraphQLID} from 'graphql';
+import {GraphQLNonNull, GraphQLID} from 'graphql';
 import {User, UserWithAuthToken} from './userSchema';
 import {errorObj} from '../utils';
 import {GraphQLEmailType, GraphQLPasswordType} from '../types';
 import {getUserByEmail, signJwt, getAltLoginMessage} from './helpers';
-import {jwtSecret} from '../../../secrets';
 import promisify from 'es6-promisify';
 import bcrypt from 'bcrypt';
 import {isAdminOrSelf} from '../authorization';
-
 
 const compare = promisify(bcrypt.compare);
 
@@ -18,8 +16,8 @@ export default {
     args: {
       id: {type: new GraphQLNonNull(GraphQLID)}
     },
-    async resolve(source, args, {rootValue}) {
-      isAdminOrSelf(rootValue, args);
+    async resolve(source, args, {authToken}) {
+      isAdminOrSelf(authToken, args);
       const user = await r.table('users').get(args.id);
       if (!user) {
         throw errorObj({_error: 'User not found'});
@@ -48,15 +46,14 @@ export default {
       if (isCorrectPass) {
         const authToken = signJwt({id: user.id});
         return {authToken, user};
-      } else {
-        throw errorObj({_error: 'Login failed', password: 'Incorrect password'});
       }
+      throw errorObj({_error: 'Login failed', password: 'Incorrect password'});
     }
   },
   loginAuthToken: {
     type: User,
-    async resolve(source, args, {rootValue}) {
-      const {id} = rootValue.authToken;
+    async resolve(source, args, {authToken}) {
+      const {id} = authToken;
       if (!id) {
         throw errorObj({_error: 'Invalid authentication Token'});
       }
@@ -67,5 +64,5 @@ export default {
       return user;
     }
   }
-}
+};
 

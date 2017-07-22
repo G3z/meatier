@@ -1,15 +1,21 @@
-import React, { Component,PropTypes } from 'react';
-import {routeActions} from 'redux-simple-router';
+import React, {PropTypes, Component} from 'react';
+import {push} from 'react-router-redux';
 import socketOptions from 'universal/utils/socketOptions';
-import {ensureState} from 'redux-optimistic-ui';
-import {connect} from 'react-redux';
 
-const {replace, push} = routeActions;
-
-// workaround for https://github.com/rackt/redux-simple-router/issues/212
 let key;
 export default ComposedComponent => {
   return class RequiredAuth extends Component {
+    static propTypes = {
+      isAuthenticated: PropTypes.bool,
+      dispatch: PropTypes.func,
+      hasAuthError: PropTypes.bool,
+      location: PropTypes.shape({
+        query: PropTypes.shape({
+          e: PropTypes.string,
+          next: PropTypes.string
+        })
+      })
+    }
 
     componentWillMount() {
       this.checkForAuth(this.props);
@@ -20,19 +26,19 @@ export default ComposedComponent => {
     }
 
     render() {
-      let {isAuthenticated} = this.props
+      const {isAuthenticated} = this.props;
       if (isAuthenticated) {
-        return <ComposedComponent {...this.props}/>
+        return <ComposedComponent {...this.props}/>;
       }
-      return <div>Logging in...</div>
+      return <div>Logging in...</div>;
     }
 
     checkForAuth(props) {
       if (__CLIENT__) {
         const {dispatch, hasAuthError, location} = props;
-        let newKey = location && location.key || 'none';
+        const newKey = location && location.key || 'none';
         if (newKey === key) {
-          return
+          return;
         }
         key = newKey;
         const authToken = localStorage.getItem(socketOptions.authTokenName);
@@ -41,5 +47,5 @@ export default ComposedComponent => {
         }
       }
     }
-  }
-}
+  };
+};

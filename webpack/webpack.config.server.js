@@ -2,6 +2,7 @@ import path from 'path';
 import webpack from 'webpack';
 import ExtractTextPlugin from 'extract-text-webpack-plugin';
 import cssModulesValues from 'postcss-modules-values';
+import HappyPack from 'happypack';
 
 const root = process.cwd();
 const serverInclude = [path.join(root, 'src', 'server'), path.join(root, 'src', 'universal')];
@@ -11,8 +12,7 @@ const prefetches = [
   'react-dnd-html5-backend/lib/index.js',
   'react-dnd/lib/index.js',
   'joi/lib/index.js',
-  'redux-form/lib/index.js',
-  'material-ui/lib/raised-button.js'
+  'redux-form/lib/index.js'
 ];
 const prefetchPlugins = prefetches.map(specifier => new webpack.PrefetchPlugin(specifier));
 
@@ -31,9 +31,8 @@ export default {
   externals: ['isomorphic-fetch', 'es6-promisify', 'socketcluster-client', 'joi', 'hoek', 'topo', 'isemail', 'moment'],
   postcss: [cssModulesValues],
   resolve: {
-    extensions: ['', '.js'],
-    root: path.join(root, 'src'),
-    alias: {}
+    extensions: ['.js'],
+    modules: [path.join(root, 'src'), 'node_modules']
   },
   plugins: [...prefetchPlugins,
     new webpack.NoErrorsPlugin(),
@@ -44,6 +43,10 @@ export default {
       '__CLIENT__': false,
       '__PRODUCTION__': true,
       'process.env.NODE_ENV': JSON.stringify('production')
+    }),
+    new HappyPack({
+      loaders: ['babel'],
+      threads: 4
     })
   ],
   module: {
@@ -65,7 +68,7 @@ export default {
       },
       {
         test: /\.js$/,
-        loader: 'babel',
+        loader: 'happypack/loader',
         include: serverInclude
       }
     ]

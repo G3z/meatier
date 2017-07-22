@@ -1,41 +1,56 @@
 import path from 'path';
 import webpack from 'webpack';
 import cssModulesValues from 'postcss-modules-values';
+import {getDotenv} from '../src/universal/utils/dotenv';
+import HappyPack from 'happypack';
+
+// Import .env and expand variables:
+getDotenv();
 
 const root = process.cwd();
 const clientInclude = [path.join(root, 'src', 'client'), path.join(root, 'src', 'universal')];
-const globalCSS = path.join(root, 'src', 'universal', 'styles','global');
+const globalCSS = path.join(root, 'src', 'universal', 'styles', 'global');
+const srcDir = path.join(root, 'src');
 
 const prefetches = [
   'react-dnd/lib/index.js',
   'joi/lib/index.js',
   'universal/modules/kanban/containers/Kanban/KanbanContainer.js'
-]
+];
 
 const prefetchPlugins = prefetches.map(specifier => new webpack.PrefetchPlugin(specifier));
 
 const babelQuery = {
-  "plugins": [
-    ["transform-decorators-legacy"],
-    ["react-transform", {
-      "transforms": [{
-        "transform": "react-transform-hmr",
-        "imports": ["react"],
-        "locals": ["module"]
+  plugins: [
+    ['transform-decorators-legacy'],
+    ['react-transform', {
+      transforms: [{
+        transform: 'react-transform-hmr',
+        imports: ['react'],
+        locals: ['module']
       }, {
-        "transform": "react-transform-catch-errors",
-        "imports": ["react", "redbox-react"]
+        transform: 'react-transform-catch-errors',
+        imports: ['react', 'redbox-react']
       }]
     }]
   ]
-}
+};
 
 export default {
-  //devtool: 'source-maps',
+  // devtool: 'source-map',
+  /*
+   When changing developer tool for debugging,
+   be sure to clear happypack cache (rm -r .happypack/) to clear out old source-maps
+  */
   devtool: 'eval',
-  context: path.join(root, "src"),
+  context: srcDir,
   entry: {
-    app: ['babel-polyfill', 'client/client.js', 'webpack-hot-middleware/client']
+    app: [
+      'babel-polyfill',
+      'react-hot-loader/patch',
+      'client/client.js',
+      'webpack-hot-middleware/client'
+    ]
   },
   output: {
     // https://github.com/webpack/webpack/issues/1752
@@ -46,17 +61,27 @@ export default {
   },
   plugins: [
     ...prefetchPlugins,
+    new webpack.optimize.OccurrenceOrderPlugin(),
     new webpack.HotModuleReplacementPlugin(),
     new webpack.NoErrorsPlugin(),
     new webpack.DefinePlugin({
-      "__CLIENT__": true,
-      "__PRODUCTION__": false,
-      "process.env.NODE_ENV": JSON.stringify('development'),
+      '__CLIENT__': true,
+      '__PRODUCTION__': false,
+      'process.env.NODE_ENV': JSON.stringify('development')
+    }),
+    new webpack.EnvironmentPlugin([
+      'PROTOCOL',
+      'HOST',
+      'PORT'
+    ]),
+    new HappyPack({
+      loaders: ['babel'],
+      threads: 4
     })
   ],
   resolve: {
-    extensions: ['', '.js'],
-    root: path.join(root, 'src')
+    extensions: ['.js'],
+    modules: [srcDir, 'node_modules']
   },
   // used for joi validation on client
   node: {
@@ -83,7 +108,7 @@ export default {
       },
       {
         test: /\.js$/,
-        loader: 'babel',
+        loader: 'happypack/loader',
         query: babelQuery,
         include: clientInclude
       }

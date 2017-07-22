@@ -3,7 +3,7 @@ import {createStore, applyMiddleware} from 'redux';
 import makeReducer from '../universal/redux/makeReducer';
 import {match} from 'react-router';
 import Html from './Html';
-import {UPDATE_LOCATION} from 'redux-simple-router';
+import {push} from 'react-router-redux';
 import {renderToStaticMarkup} from 'react-dom-stream/server';
 import fs from 'fs';
 import {join, basename} from 'path';
@@ -14,15 +14,16 @@ import {Map as iMap} from 'immutable';
 // https://github.com/systemjs/systemjs/issues/953
 
 function renderApp(res, store, assets, renderProps) {
-  const location = renderProps ? renderProps.location : '/';
+  const location = renderProps && renderProps.location && renderProps.location.pathname || '/';
   // Needed so some components can render based on location
-  store.dispatch({type: UPDATE_LOCATION, location});
+  store.dispatch(push(location));
   const htmlStream = renderToStaticMarkup(<Html
     title="meatier"
     store={store}
     assets={assets}
     renderProps={renderProps}
     />);
+  res.write('<!DOCTYPE html>');
   htmlStream.pipe(res, {end: false});
   htmlStream.on('end', () => res.end());
 }

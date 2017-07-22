@@ -1,10 +1,9 @@
 import r from '../../../database/rethinkdriver';
-import {User, UserWithAuthToken, GoogleProfile} from './userSchema';
-import {GraphQLEmailType, GraphQLURLType, GraphQLPasswordType} from '../types';
+import {UserWithAuthToken, GoogleProfile} from './userSchema';
+import {GraphQLEmailType, GraphQLPasswordType} from '../types';
 import {getUserByEmail, signJwt, getAltLoginMessage, makeSecretToken} from './helpers';
 import {errorObj} from '../utils';
-import {GraphQLNonNull, GraphQLInputObjectType, GraphQLBoolean} from 'graphql';
-import {jwtSecret} from '../../../secrets';
+import {GraphQLNonNull, GraphQLBoolean} from 'graphql';
 import validateSecretToken from '../../../../universal/utils/validateSecretToken';
 import {isLoggedIn} from '../authorization';
 import promisify from 'es6-promisify';
@@ -33,19 +32,18 @@ export default {
         if (isCorrectPass) {
           const authToken = signJwt({id: user.id});
           return {authToken, user};
-        } else {
-          throw errorObj({_error: 'Cannot create account', email: 'Email already exists'})
         }
+        throw errorObj({_error: 'Cannot create account', email: 'Email already exists'});
       } else {
-        //production should use 12+, but it's slow for dev
+        // production should use 12+, but it's slow for dev
         const newHashedPassword = await hash(password, 10);
         const id = uuid.v4();
-        //must verify email within 1 day
+        // must verify email within 1 day
         const verifiedEmailToken = makeSecretToken(id, 60 * 24);
         const userDoc = {
           id,
           email,
-          createdAt: r.now(),
+          createdAt: new Date(),
           strategies: {
             local: {
               isVerified: false,
@@ -53,12 +51,12 @@ export default {
               verifiedEmailToken
             }
           }
-        }
+        };
         const newUser = await r.table('users').insert(userDoc);
         if (!newUser.inserted) {
           throw errorObj({_error: 'Could not create account, please try again'});
         }
-        //TODO send email with verifiedEmailToken via mailgun or whatever
+        // TODO send email with verifiedEmailToken via mailgun or whatever
         console.log('Verify url:', `http://localhost:3000/verify-email/${verifiedEmailToken}`);
         const authToken = signJwt({id});
         return {user: userDoc, authToken};
@@ -89,8 +87,7 @@ export default {
     args: {
       password: {type: new GraphQLNonNull(GraphQLPasswordType)}
     },
-    async resolve(source, {password}, {rootValue}) {
-      const {resetToken} = rootValue;
+    async resolve(source, {password}, {resetToken}) {
       const resetTokenObject = validateSecretToken(resetToken);
       if (resetTokenObject._error) {
         throw errorObj(resetTokenObject);
@@ -101,7 +98,7 @@ export default {
       }
       const userResetToken = user.strategies && user.strategies.local && user.strategies.local.resetToken;
       if (!userResetToken || userResetToken !== resetToken) {
-        throw new errorObj({_error: 'Unauthorized'});
+        throw errorObj({_error: 'Unauthorized'});
       }
       const newHashedPassword = await hash(password, 10);
       const updates = {
@@ -111,21 +108,21 @@ export default {
             resetToken: null
           }
         }
-      }
-      const result = await r.table('users').get(user.id).update(updates, {returnChanges: true})
+      };
+      const result = await r.table('users').get(user.id).update(updates, {returnChanges: true});
       if (!result.replaced) {
         throw errorObj({_error: 'Could not find or update user'});
       }
       const newUser = result.changes[0].new_val;
-      const authToken = signJwt(newUser);
-      return {authToken, user: newUser};
+      const newAuthToken = signJwt(newUser);
+      return {newAuthToken, user: newUser};
     }
   },
   resendVerificationEmail: {
     type: GraphQLBoolean,
-    async resolve(source, args, {rootValue}) {
-      isLoggedIn(rootValue);
-      const {id} = rootValue.authToken;
+    async resolve(source, args, {authToken}) {
+      isLoggedIn(authToken);
+      const {id} = authToken;
       const user = await r.table('users').get(id);
       if (!user) {
         throw errorObj({_error: 'User not found'});
@@ -138,15 +135,14 @@ export default {
       if (!result.replaced) {
         throw errorObj({_error: 'Could not find or update user'});
       }
-      //TODO send email with new verifiedEmailToken via mailgun or whatever
+      // TODO send email with new verifiedEmailToken via mailgun or whatever
       console.log('Verified url:', `http://localhost:3000/login/verify-email/${verifiedEmailToken}`);
       return true;
     }
   },
   verifyEmail: {
     type: UserWithAuthToken,
-    async resolve(source, args, {rootValue}) {
-      const {verifiedEmailToken, authToken} = rootValue;
+    async resolve(source, args, {verifiedEmailToken}) {
       const verifiedEmailTokenObj = validateSecretToken(verifiedEmailToken);
       if (verifiedEmailTokenObj._error) {
         throw errorObj(verifiedEmailTokenObj);
@@ -160,7 +156,7 @@ export default {
         throw errorObj({_error: 'Email already verified'});
       }
       if (localStrategy && localStrategy.verifiedEmailToken !== verifiedEmailToken) {
-        throw new errorObj({_error: 'Unauthorized'});
+        throw errorObj({_error: 'Unauthorized'});
       }
       const updates = {
         strategies: {
@@ -169,7 +165,7 @@ export default {
             verifiedEmailToken: null
           }
         }
-      }
+      };
       const result = await r.table('users').get(verifiedEmailTokenObj.id).update(updates, {returnChanges: true});
       if (!result.replaced) {
         throw errorObj({_error: 'Could not find or update user'});
@@ -177,7 +173,7 @@ export default {
       return {
         user: result.changes[0].new_val,
         authToken: signJwt(verifiedEmailTokenObj)
-      }
+      };
     }
   },
   loginWithGoogle: {
@@ -185,28 +181,28 @@ export default {
     args: {
       profile: {type: new GraphQLNonNull(GoogleProfile)}
     },
-    async resolve(source, {profile}, {rootValue}) {
+    async resolve(source, {profile}) {
       const user = await getUserByEmail(profile.email);
       if (!user) {
-        //create new user
+        // create new user
         const userDoc = {
           email: profile.email,
-          createdAt: r.now(),
+          createdAt: new Date(),
           strategies: {
             google: {
               id: profile.id,
               email: profile.email,
-              isVerified: profile.verified_email, //we'll assume this is always true
+              isVerified: profile.verified_email, // we'll assume this is always true
               name: profile.name,
               firstName: profile.given_name,
               lastName: profile.family_name,
-              //link: profile.link, //who cares, it's google+
+              // link: profile.link, //who cares, it's google+
               picture: profile.picture,
               gender: profile.gender,
               locale: profile.locale
             }
           }
-        }
+        };
         const result = await r.table('users').insert(userDoc, {returnChanges: true});
         if (!result.inserted) {
           throw errorObj({_error: 'Could not find or update user'});
@@ -214,7 +210,7 @@ export default {
         const authToken = signJwt({id: user.id});
         return {authToken, user: result.changes[0].new_val};
       }
-      //if the user already exists && they have a google strategy
+      // if the user already exists && they have a google strategy
       if (user.strategies && user.strategies.google) {
         if (user.strategies.google.id !== profile.id) {
           throw errorObj({_error: 'Unauthorized'});
@@ -222,7 +218,7 @@ export default {
         const authToken = signJwt({id: user.id});
         return {authToken, user};
       }
-      //if the user already exists && they don't have a google strategy
+      // if the user already exists && they don't have a google strategy
       throw errorObj(getAltLoginMessage(user.strategies));
     }
   }

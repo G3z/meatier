@@ -1,17 +1,18 @@
 import React, {PropTypes, Component} from 'react';
 import {reduxForm} from 'redux-form';
-import Joi from 'joi';
 import Editable from 'universal/modules/kanban/components/Editable/Editable';
 import {getFormState} from 'universal/redux/helpers';
 
 @reduxForm({getFormState})
 export default class EditableContainer extends Component {
-  static PropTypes = {
+  static propTypes = {
     item: PropTypes.object.isRequired,
     updateItem: PropTypes.func.isRequired,
     dispatch: PropTypes.func.isRequired,
-    form: PropTypes.string.isRequired,
-    fields: PropTypes.object.isRequired
+    form: PropTypes.string,
+    fields: PropTypes.object.isRequired,
+    handleSubmit: PropTypes.func,
+    active: PropTypes.string
   };
 
   render() {
@@ -21,8 +22,6 @@ export default class EditableContainer extends Component {
     const {dispatch, item, updateItem, handleSubmit} = this.props;
     const isEditing = this.props.active === fieldName;
     const compProps = {dispatch, item, updateItem, handleSubmit, isEditing};
-    return <Editable {...compProps} formProps={field}/>
+    return <Editable {...compProps} formProps={field}/>;
   }
 }
-
-
